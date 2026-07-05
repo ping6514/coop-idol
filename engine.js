@@ -186,7 +186,7 @@ const MAP = [ // 兩章·第一章(淺海)→第二章(深淵)、越後越硬。
     {desc:'❓神秘漩渦·隱藏BOSS 古潮巨獸(需探索值≥4·極硬·大獎)', cond:s=>((s.run.explore||0)>=4), nodes:[{t:'battle',e:'leviath',hidden:true},{t:'relic'}]} ], // 隱藏boss:探索值夠才浮現
   },
   {t:'shop'},{t:'campfire'},{t:'boss',e:'boss',final:true} ]; // 匯流後→商人→休息→最終boss 莎菈
-  // 第二章(ch2)+最終boss深淵古神 已設計、但需回復節奏/boss防stall/revive 才 shippable(見 ROADMAP)、暫維持單章
+  // 第二章(深淵古神)已接通並實測:soft-lock 已根治(decay/revive→0 stall)、meta滿可通關(85-90%);但 meta0 太殘酷(0-15%·單章版是30-65%)→難度/UX抉擇留給使用者(見 CH2_DECISION.md)、暫維持單章
 
 /* ---- 初始化 ---- */
 function assignHeroes(S,picks){ // 依選角(2個hero-id)指派 slot A/B + 填 POOL
