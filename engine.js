@@ -543,6 +543,10 @@ function smart(S,player){
   const canPierce=!(e.armor>0&&(e.exposeCount||0)<=0);
   const role=S.heroes[player].role, ally=(player==='A'?'B':'A');
   const pick=(order)=>{ for(const k of order){const i=cs.hand.findIndex(x=>x===k||UPGRADE[k]===x);if(i>=0){const mv=cards.find(m=>m.cardIdx===i);if(mv)return mv;}} return null; };
+  // 情境優先(修adapter覆蓋盲點):多敵時先AoE清群;打對元素弱點先用元素矢(×1.5)。讓smart真的會用這些機制
+  const aliveN=aliveEnemies(S).length; const EL={fire:'flamedart',ice:'frostdart',thunder:'zap'};
+  const sitPre=[]; if(aliveN>=2) sitPre.push('scatter','tidalwave'); (e.weak||[]).forEach(w=>{ if(EL[w]) sitPre.push(EL[w]); });
+  const spick=(order)=>pick([...sitPre,...order]); // 帶情境前綴的pick
   if(role==='guardian'){
     if(wall&&e.boss&&incomingSmash>=24) return wall;                 // boss大招→絕對防線
     const someoneDown=B.combat.A.downed||B.combat.B.downed;
@@ -554,14 +558,14 @@ function smart(S,player){
     else order=['memento_b','inspire','battlefield','rally','command','tempo','shield','weaken','taunt','ironwall','block','rain','coverguard','siphon','bondknot','quickjab','thornshield','insight','resonance'];
     return pick(order)||{type:'end_turn',player};
   } else if(role==='control'){ // 丸子:先疊debuff→(疫/枯萎面狀)→綻放計數爆發
-    return pick(['miasma','tint','plague','wither','weaken','ember','bloom','scatter','quickjab','siphon','coverguard','bondknot'])||{type:'end_turn',player};
+    return spick(['miasma','tint','plague','wither','weaken','ember','bloom','scatter','quickjab','siphon','coverguard','bondknot'])||{type:'end_turn',player};
   } else if(role==='tempo'){ // 金魚:streamdraw鋪→傷害牌+浪潮AoE→連打payoff
-    return pick(['streamdraw','dartvolley','tidalwave','scatter','barrage','quickjab','flamedart','frostdart','zap','tempo','flurry','crescendo','siphon','bondknot'])||{type:'end_turn',player};
+    return spick(['streamdraw','dartvolley','tidalwave','scatter','barrage','quickjab','flamedart','frostdart','zap','tempo','flurry','crescendo','siphon','bondknot'])||{type:'end_turn',player};
   } else { // attacker(炎)
     if(burst&&(e.boss||e.hp<=40)&&canPierce) return burst;          // 只在boss戰/收頭才爆羈絆
     const order = canPierce ? ['memento_a','resonate','cleave','heavy','bloodblade','thousand','warcry','barrage','ember','insight','strike','quickjab','flamedart','frostdart','zap','focus','gift','guardself']
                             : ['focus','gift','warcry','ember','insight','guardself','barrage','strike']; // 穿不了甲別浪費大牌、改蓄力/鋪
-    return pick(order)||{type:'end_turn',player};
+    return spick(order)||{type:'end_turn',player};
   }
 }
 
