@@ -94,8 +94,8 @@ function rarCls(k){ const r=E.rarity(k); return r==='R'?'rar-R':(r==='E'?'rar-E'
 function render(){
   if(!S){ app().innerHTML='引擎未載入(需與 engine.js 同目錄)'; return; }
   const ph=S.phase;
-  if(ph==='select') return renderSelect();
-  if(ph==='win'||ph==='lose') return renderEnd();
+  if(ph==='select'){ app().innerHTML=renderSelect(); return; }   // 修:select/end 要賦值給 innerHTML(舊版只 return 字串→一開局就卡在「載入引擎中…」)
+  if(ph==='win'||ph==='lose'){ app().innerHTML=renderEnd(); return; }
   // top bar (run 資訊)
   let top=`<div class="top">`;
   if(S.heroes){ top+=`<span class="pill">${S.heroes.A.name} ${S.heroes.A.hp}/${S.heroes.A.max}</span><span class="pill">${S.heroes.B.name} ${S.heroes.B.hp}/${S.heroes.B.max}</span>`; }
