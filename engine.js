@@ -185,8 +185,12 @@ const MAP = [ // 兩章·第一章(淺海)→第二章(深淵)、越後越硬。
     {desc:'🔥困難路:狂暴海域(敵全體攻擊+4) + 額外遺物、給較多探索值', nodes:[{t:'battle',e:'crabgen',mod:'frenzy'}]},
     {desc:'❓神秘漩渦·隱藏BOSS 古潮巨獸(需探索值≥4·極硬·大獎)', cond:s=>((s.run.explore||0)>=4), nodes:[{t:'battle',e:'leviath',hidden:true},{t:'relic'}]} ], // 隱藏boss:探索值夠才浮現
   },
-  {t:'shop'},{t:'campfire'},{t:'boss',e:'boss',final:true} ]; // 匯流後→商人→休息→最終boss 莎菈
-  // 第二章(深淵古神)已接通並實測:soft-lock 已根治(decay/revive→0 stall)、meta滿可通關(85-90%);但 meta0 太殘酷(0-15%·單章版是30-65%)→難度/UX抉擇留給使用者(見 CH2_DECISION.md)、暫維持單章
+  {t:'shop'},{t:'campfire'},{t:'boss',e:'boss',final:true} ]; // 第一章最終boss 莎菈(未解鎖時=通關)
+// 第二章·深淵(進階解鎖:首通莎菈後 meta.ch1cleared=true→自動接在莎菈後·莎菈改章節boss全滿血→深淵古神)
+const CH2 = [ {t:'battle',e:'crabgen'},{t:'campfire'},{t:'battle',e:'murk'},{t:'shop'},{t:'boss',e:'abyssking',final:true} ];
+function buildMap(meta){ const m=MAP.map(x=>Object.assign({},x)); // 選項D:進階解鎖
+  if(meta && meta.ch1cleared){ const b=m.find(n=>n.t==='boss'&&n.e==='boss'); if(b) b.final=false; return m.concat(CH2.map(x=>Object.assign({},x))); } // 解鎖後:莎菈變章節boss(非final→全滿血續關)+接第二章
+  return m; } // 未解鎖:單章、莎菈=最終boss(新手先享受單章成就感)
 
 /* ---- 初始化 ---- */
 function assignHeroes(S,picks){ // 依選角(2個hero-id)指派 slot A/B + 填 POOL
@@ -195,13 +199,13 @@ function assignHeroes(S,picks){ // 依選角(2個hero-id)指派 slot A/B + 填 P
   S.heroes={ A:{id:picks[0],name:da.name,hp:da.hp,max:da.hp,deck:da.start.slice(),role:da.role},
              B:{id:picks[1],name:db.name,hp:db.hp,max:db.hp,deck:db.start.slice(),role:db.role} };
 }
-function baseRun(seed,coef){ return { seed, rng:(seed||1)>>>0, log:[],
-  run:{node:0, gold:0, bond:0, explore:0, coef:(coef||1), shopCounter:3, relics:[], map:MAP.map(x=>Object.assign({},x))}, battle:null, offer:null }; }
-function init(seed,coef,picks,meta){ // 直接開局(headless/給定選角);預設炎+凪;meta=全局成長
-  const S=baseRun(seed,coef); S.phase='map'; assignHeroes(S,(picks&&picks.length===2)?picks:['yugan','shuimu']); if(meta)applyMeta(S,meta); return S;
+function baseRun(seed,coef,meta){ return { seed, rng:(seed||1)>>>0, log:[],
+  run:{node:0, gold:0, bond:0, explore:0, coef:(coef||1), shopCounter:3, relics:[], map:buildMap(meta)}, battle:null, offer:null }; }
+function init(seed,coef,picks,meta){ // 直接開局(headless/給定選角);預設炎+凪;meta=全局成長(含ch1cleared解鎖第二章)
+  const S=baseRun(seed,coef,meta); S.phase='map'; assignHeroes(S,(picks&&picks.length===2)?picks:['yugan','shuimu']); if(meta)applyMeta(S,meta); return S;
 }
 function initSelect(seed,coef,meta){ // 互動開局:先進角色選擇(4選2)
-  const S=baseRun(seed,coef); S.phase='select'; S.selPicks=[]; S.heroes=null; S._meta=meta||null; return S;
+  const S=baseRun(seed,coef,meta); S.phase='select'; S.selPicks=[]; S.heroes=null; S._meta=meta||null; return S;
 }
 const ROSTER=['yugan','shuimu','wanzi','jin']; // 可選角色(4隻bot persona)
 /* 全局成長(meta·跨局)：meta={shards, ups:{vigor,might,fortune}}。引擎套用+結算星屑;存檔跨局由外層(UI localStorage)管 */

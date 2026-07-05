@@ -230,9 +230,11 @@ function hero(k,who){ const p=S.battle.combat[k], H=S.heroes[k]; const st=p.st||
     <div class="tags">${p.block?'🛡'+p.block:''} ${stx}</div></div>`; }
 
 function renderEnd(){ const win=S.phase==='win';
-  if(!S._earned){ const sh=S.run.node*2+(win?15:0)+Math.floor((S.run.clearScore||0)/5); meta.shards=(meta.shards||0)+sh; saveMeta(meta); S._earned=sh; }
+  if(!S._earned){ const sh=S.run.node*2+(win?15:0)+Math.floor((S.run.clearScore||0)/5); meta.shards=(meta.shards||0)+sh; saveMeta(meta); S._earned=sh;
+    if(win && !meta.ch1cleared){ meta.ch1cleared=true; saveMeta(meta); S._justUnlocked=true; } } // 首次通關→解鎖第二章(進階解鎖·跨局存)
   return `<div class="banner ${win?'win':'lose'}"><h2>${win?'☀️ 通關!':'兩人都倒下了…'}</h2>
     <div>${win?('通關評分 '+(S.run.clearScore||0)+' · 寶箱 '+(S.run.clearChest||'—')):'下次再一起接住彼此'}</div>
+    ${S._justUnlocked?'<div class="hint" style="color:var(--bond);font-weight:800">🔓 解鎖第二章·深淵！下一局莎菈之後將續戰最終boss 深淵古神</div>':''}
     <div class="hint">獲得 ⭐${S._earned} 星屑(已存·跨局)。目前星屑 ${meta.shards}。<br>回選角畫面可用星屑做全局成長、再挑戰。</div>
     <br><button class="btn big" onclick="startFresh()">再來一局(帶著成長)</button></div>`;
 }

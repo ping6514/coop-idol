@@ -3,7 +3,8 @@
 const E=require('../engine.js');
 const ROSTER=E.ROSTER, pairs=[];
 for(let i=0;i<ROSTER.length;i++)for(let j=i+1;j<ROSTER.length;j++)pairs.push([ROSTER[i],ROSTER[j]]);
-const metas=[null,{shards:0,ups:{vigor:3,might:2,fortune:1}},{shards:0,ups:{vigor:5,might:5,fortune:3}}];
+const metas=[null,{shards:0,ups:{vigor:3,might:2,fortune:1}},{shards:0,ups:{vigor:5,might:5,fortune:3}},
+  {shards:0,ups:{},ch1cleared:true},{shards:0,ups:{vigor:5,might:5,fortune:3},ch1cleared:true}]; // 後2個=解鎖第二章路徑(兩章)也要掃
 const coefs=[0.8,1.0,1.3];
 function play(seed,picks,pol,meta,coef){
   let S, g=0;
@@ -21,7 +22,7 @@ for(const p of pairs)for(const pol of [E.greedy,E.smart])for(const meta of metas
   for(let s=1;s<=40;s++){ games++; const r=play(s*137+7,p,pol,meta,coef);
     if(r.stall) stalls.push({p:p.join('+'),coef,s,...r});
     if(r.err) errs.push({p:p.join('+'),coef,s,...r}); }
-console.log(`=== 窮舉硬化掃描:${games} 場 (6組×2adapter×3meta×3coef×40seed) ===`);
+console.log(`=== 窮舉硬化掃描:${games} 場 (6組×2adapter×${metas.length}meta[含解鎖兩章]×${coefs.length}coef×40seed) ===`);
 console.log('STALL:', stalls.length, stalls.length?JSON.stringify(stalls.slice(0,5)):'✓ 零卡死');
 console.log('CRASH:', errs.length, errs.length?JSON.stringify(errs.slice(0,5)):'✓ 零拋錯');
 console.log(stalls.length||errs.length ? '❌ 有問題、需修' : '🎉 引擎在所有情況下都穩定終止、不卡死不崩');
