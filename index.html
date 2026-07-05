@@ -86,7 +86,8 @@ function startFresh(){ meta.runs=(meta.runs||0)+1; saveMeta(meta); S=E.initSelec
 function act(mv){ S=E.apply(S,mv); pump(); render(); }
 function pump(){ let g=0; while(E.whoseTurn(S)==='engine' && g++<50){ S=E.engineStep(S); } }
 function metaBuy(id){ meta=E.metaBuy(meta,id); saveMeta(meta); render(); }
-function setTarget(i){ selTarget=i; render(); }
+function setTarget(i){ selTarget=(selTarget===i?null:i); render(); } // 再點同一敵=取消選取
+function playCard(who,idx){ act({type:'play_card',player:who,cardIdx:idx,target:selTarget}); selTarget=null; } // 點擊時讀當下selTarget(不靠inline全域引用)、出牌後清除選取
 
 function C(k){ return E.C[k]||{n:k,d:'',c:0}; }
 // 從公開卡欄位自動生成效果說明(多數基礎牌沒手寫 d:、否則戰鬥中卡面空白=「沒效果文」)
@@ -208,10 +209,12 @@ function renderBattle(){
   mv.filter(m=>m.type==='use_bond').forEach(m=>{ const s=E.BOND_SKILLS[m.skill]; h+=` <button class="btn g" onclick="act({type:'use_bond',player:'${who}',skill:'${m.skill}'})">${s.n}(${s.cost}羈絆)</button>`; });
   if(who==='A'||who==='B') h+=` <button class="btn sec" onclick="act({type:'end_turn',player:'${who}'})">結束 ${S.heroes[who].name} 回合 ▶</button>`;
   h+=`</div>`;
-  if(selTarget!=null && B.enemies[selTarget] && B.enemies[selTarget].hp>0) h+=`<div class="sub">🎯 已選目標:${B.enemies[selTarget].name}(單體攻擊會打它;不選=打最低血)</div>`;
+  const aliveN=B.enemies.filter(e=>e.hp>0).length;
+  if(selTarget!=null && B.enemies[selTarget] && B.enemies[selTarget].hp>0) h+=`<div class="sub">🎯 已選目標:<b>${B.enemies[selTarget].name}</b> · 單體攻擊會打它(再點一次取消;不選=自動打血最少的)</div>`;
+  else if((who==='A'||who==='B') && aliveN>1) h+=`<div class="sub">💡 多個敵人:點上方敵人可指定單體攻擊目標(不點=自動打血最少的)</div>`;
   // hand
   if(who==='A'||who==='B'){ const cs=B.combat[who]; h+='<div class="hand">'+cs.hand.map((k,i)=>{ const c=C(k); const noB=c.bondcost&&S.run.bond<c.bondcost; const dis=cs.energy<c.c||noB;
-    return `<div class="card ${rarCls(k)} ${dis?'dis':''}" ${dis?'':`onclick="act({type:'play_card',player:'${who}',cardIdx:${i},target:${selTarget}})"`}><span class="cc">${c.c}</span><div class="cn">${c.n}</div><div class="cd">${cardText(c)}</div><div class="tag">${c.fac||''}${c.elem?'·'+c.elem:''}</div></div>`; }).join('')+'</div>'; }
+    return `<div class="card ${rarCls(k)} ${dis?'dis':''}" ${dis?'':`onclick="playCard('${who}',${i})"`}><span class="cc">${c.c}</span><div class="cn">${c.n}</div><div class="cd">${cardText(c)}</div><div class="tag">${c.fac||''}${c.elem?'·'+c.elem:''}</div></div>`; }).join('')+'</div>'; }
   else h+='<div class="hand sub">敵人行動中…（自動）</div>';
   // feed
   if(B.feed&&B.feed.length) h+='<div class="feed">'+B.feed.slice(0,10).map(x=>`<div>· ${x}</div>`).join('')+'</div>';
@@ -234,7 +237,7 @@ function renderEnd(){ const win=S.phase==='win';
     <br><button class="btn big" onclick="startFresh()">再來一局(帶著成長)</button></div>`;
 }
 // 只把 inline onclick 用到的 handler 掛上 window(其餘全隔離在 IIFE 內、不污染全域)
-window.act=act; window.metaBuy=metaBuy; window.startFresh=startFresh; window.render=render; window.setTarget=setTarget;
+window.act=act; window.metaBuy=metaBuy; window.startFresh=startFresh; window.render=render; window.setTarget=setTarget; window.playCard=playCard;
 startFresh();
 })();
 </script>
