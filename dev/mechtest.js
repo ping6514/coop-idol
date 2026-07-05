@@ -28,4 +28,26 @@ ok('元素打抗性 ×0.5', Math.abs(rs/nu-0.5)<0.2, `${rs}/${nu}`);
   let S2=E.apply(S,{type:'play_card',player:'A',cardIdx:0,target:0});
   const revived=S2.heroes.B.hp, expect=Math.round(S2.heroes.B.max*0.4);
   ok('戰後自動復活倒地隊友(~40%)', revived>0 && Math.abs(revived-expect)<=1, `B=${revived} 期望≈${expect}`); }
+// 6. 擊殺獎勵:還有其他敵人時擊殺→出牌者抽1補牌(打完唯一手牌heavy→若有獎勵抽1則hand=1)
+{ const S=setup(['heavy']); const e0=S.battle.enemies[0]; e0.block=0;e0.armor=0;
+  S.battle.enemies.push({id:'y',name:'小兵',hp:5,max:5,block:0,armor:0,exposeCount:0,grp:null,ins:[{t:'smash',v:5}],ii:0,boss:false,tauntT:null,weak:null,resist:null,st:{}});
+  E.apply(S,{type:'play_card',player:'A',cardIdx:0,target:1}); // 打死enemies[1]、enemies[0]還在→給獎勵抽1
+  ok('擊殺獎勵(他敵尚存→抽1補牌)', S.battle.combat.A.hand.length===1, 'hand='+S.battle.combat.A.hand.length); }
+
+// 7. 跨治療救起倒地隊友:A打heal(cross:heal,rev)→B復活
+{ const S=setup(['heal']); S.battle.combat.B.downed=true; S.heroes.B.hp=0;
+  E.apply(S,{type:'play_card',player:'A',cardIdx:0,target:0});
+  ok('治療卡救起倒地隊友', !S.battle.combat.B.downed && S.heroes.B.hp>0, `B downed=${S.battle.combat.B.downed} hp=${S.heroes.B.hp}`); }
+
+// 8. 召喚物進場:打sprite→summons多一個
+{ const S=setup(['sprite']); const n0=S.battle.summons.length;
+  E.apply(S,{type:'play_card',player:'A',cardIdx:0,target:0});
+  ok('召喚物進場', S.battle.summons.length===n0+1, 'summons='+S.battle.summons.length); }
+
+// 9. 羈絆技:羈絆夠→共鳴爆發給A鼓舞(empower)
+{ const S=setup(['strike']); S.run.bond=6;
+  E.apply(S,{type:'use_bond',player:'A',skill:'burst'});
+  const emp=S.battle.combat.A.st&&S.battle.combat.A.st.empower;
+  ok('羈絆技·共鳴爆發(A得鼓舞)', !!emp, 'empower='+(emp?emp.v:0)); }
+
 console.log(`\n結果:${pass} 過 / ${fail} 失敗 ${fail?'❌':'🎉 核心機制全部正確'}`);
