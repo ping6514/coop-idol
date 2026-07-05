@@ -277,8 +277,10 @@ function legalMoves(S,player){
     const t=S.battle.turn; if(t!==player) return M;
     if(S.battle.combat[player].downed){ M.push({type:'end_turn',player}); return M; } // 倒下只能pass
     const cs=S.battle.combat[player];
-    cs.hand.forEach((k,i)=>{ const c=C[k]; if(cs.energy>=c.c && !(c.bondcost&&S.run.bond<c.bondcost)) M.push({type:'play_card',player,cardIdx:i}); });
-    Object.keys(BOND_SKILLS).forEach(sk=>{ if(S.run.bond>=BOND_SKILLS[sk].cost) M.push({type:'use_bond',player,skill:sk}); });
+    if((S.battle.cardsThisRound||0)<40){ // 防迴圈保證:單回合出牌破40(如0費抽牌卡循環)就只剩end_turn、強制回合推進(配合round>15 decay保證終止);40遠高於任何合理連打
+      cs.hand.forEach((k,i)=>{ const c=C[k]; if(cs.energy>=c.c && !(c.bondcost&&S.run.bond<c.bondcost)) M.push({type:'play_card',player,cardIdx:i}); });
+      Object.keys(BOND_SKILLS).forEach(sk=>{ if(S.run.bond>=BOND_SKILLS[sk].cost) M.push({type:'use_bond',player,skill:sk}); });
+    }
     M.push({type:'end_turn',player});
   }
   return M;
@@ -377,7 +379,7 @@ function endTurn(S){ const B=S.battle; B.passStreak=(B.passStreak||0)+1; if(B.pa
 function engineStep(S){
   if(S.phase!=='battle'||(S.battle.passStreak||0)<2) return S;
   const B=S.battle; B._actor=null; // 敵人回合:召喚物/燃燒/敵方造成的擊殺不給玩家獎勵
-  if(B.round>15){ B.enemies.forEach(e=>{ if(e.hp>0) e.enraged=(e.enraged||0)+1; }); if(B.round===16)B.feed.unshift('⏳戰鬥拖太久·敵人開始狂暴(+傷/回合)!'); } // 防軟鎖:過久敵人遞增暴怒、強制收尾(避免打不死也死不了的stall)
+  if(B.round>15){ const decay=(B.round-15)*3; B.enemies.forEach(e=>{ if(e.hp>0){ e.enraged=(e.enraged||0)+1; e.hp=Math.max(0,e.hp-decay); } }); if(B.round===16)B.feed.unshift('⏳戰鬥拖太久·敵人狂暴+持續崩解、強制收尾!'); if(allDead(S)){ winBattle(S); return S; } } // 防軟鎖:過久敵人遞增暴怒(+傷)且每回合遞增真傷崩解(decay=(round-15)*3)、連自療敵也保證死→強制收尾(杜絕打不死也死不了的stall)
   if(B.summons && B.summons.length){ // 召喚物:主角回合結束後、敵人行動前自動動作(隨機目標·God Field式)
     for(const su of B.summons){ let act=su.kind; if(act==='random') act=rnd(S)<0.5?'heal':'attack';
       if(act==='heal'){ const hs=['A','B'].filter(h=>!B.combat[h].downed); if(hs.length){ const h=hs[ri(S,hs.length)]; S.heroes[h].hp=Math.min(S.heroes[h].max,S.heroes[h].hp+su.v); B.feed.unshift(`召喚物治療${S.heroes[h].name}+${su.v}`);} }
