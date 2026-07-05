@@ -519,12 +519,13 @@ function greedy(S,player){
 function smart(S,player){
   const moves=legalMoves(S,player);
   if(S.phase!=='battle'){
-    if(S.phase==='mapfork'){ const healthy=S.heroes.A.hp>=S.heroes.A.max*0.6 && S.heroes.B.hp>=S.heroes.B.max*0.6; return {type:'map_choice',pick: healthy?1:0}; } // 高手:血夠就走困難路搏獎勵/探索值、否則安全
+    if(S.phase==='mapfork'){ const hasDef=['A','B'].some(h=>S.heroes[h].role==='guardian'||S.heroes[h].role==='control'); const thr=hasDef?0.6:0.85; const healthy=S.heroes.A.hp>=S.heroes.A.max*thr && S.heroes.B.hp>=S.heroes.B.max*thr; return {type:'map_choice',pick: healthy?1:0}; } // 高手:血夠走困難路搏獎勵、否則安全;無守護的脆皮組(玻璃砲)要更高門檻(0.85)才敢冒險、別過度延伸被中段硬仗打死
     if(S.phase==='shop'){ const rm=moves.find(m=>m.act==='remove'), up=moves.find(m=>m.act==='upgrade'); // 高手:牌組胖先精簡、否則升級關鍵牌、花探索值換戰力
       const bloated=(S.heroes.A.deck.length+S.heroes.B.deck.length)>=22;
       if(bloated && rm) return rm; if(up) return up; return {type:'shop',act:'leave'}; }
     if(S.phase==='campfire'){ const bossNext=S.run.map[S.run.node+1]&&S.run.map[S.run.node+1].t==='boss';
-      const hurt=S.heroes.A.hp<S.heroes.A.max*0.7||S.heroes.B.hp<S.heroes.B.max*0.7;
+      const hasDef=['A','B'].some(h=>S.heroes[h].role==='guardian'||S.heroes[h].role==='control'); const restThr=hasDef?0.7:0.9; // 純攻擊組(無守護無控制)沒減傷手段→營火更該休息(門檻拉到0.9)
+      const hurt=S.heroes.A.hp<S.heroes.A.max*restThr||S.heroes.B.hp<S.heroes.B.max*restThr;
       if(hurt||bossNext) return {type:'campfire',choice:'rest'};
       const canExplore=moves.find(m=>m.choice==='explore'); if(canExplore) return canExplore; // 高手:探索值夠就換遺物(經營資源)
       return {type:'campfire',choice:S.run.node<3?'upgrade':'remove'}; }
