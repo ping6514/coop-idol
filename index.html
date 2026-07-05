@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>合作肉鴿・薄客戶端</title>
+<style>
+  :root{
+    --bg:#f3e7cf; --bg2:#efe0c2; --panel:#fffaf0; --ink:#2b2620; --sub:#6f6553;
+    --line:#d8c7a3; --a:#c8621e; --b:#1f7a8c; --enemy:#a83254; --good:#2e7d32; --warn:#c62828;
+    --gold:#b8860b; --link:#0f766e; --bond:#7b3fbf;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Noto Sans TC",system-ui,sans-serif;background:var(--bg);color:var(--ink);user-select:none;font-size:15px;line-height:1.4}
+  #app{max-width:1000px;margin:0 auto;padding:12px 16px 40px}
+  h1{font-size:17px;margin:6px 0}
+  .sub{color:var(--sub);font-size:13px}
+  .top{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:14px;margin:8px 0;padding:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  .top b{color:var(--gold)}
+  .pill{background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:13px}
+  .btn{background:var(--a);color:#fff;border:0;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;font-size:14px}
+  .btn.sec{background:var(--b)} .btn.g{background:linear-gradient(90deg,#7b3fbf,#a06fe0)} .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.big{padding:12px 22px;font-size:16px}
+  .card{display:inline-block;width:130px;vertical-align:top;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:8px;margin:4px;cursor:pointer;transition:transform .1s}
+  .card:hover{transform:translateY(-4px);border-color:var(--a)}
+  .card.dis{opacity:.45;cursor:not-allowed;transform:none}
+  .card .cn{font-weight:800;font-size:14px}
+  .card .cc{float:right;color:var(--gold);font-weight:800}
+  .card .cd{font-size:11.5px;color:var(--sub);margin-top:4px;min-height:44px}
+  .card .tag{font-size:10px;color:var(--link);margin-top:3px}
+  .rar-R{border-color:#c99a2e}.rar-E{border-color:#7b3fbf}
+  .enemy{background:var(--panel);border:2px solid #e0b9c6;border-radius:14px;padding:10px 12px;margin-bottom:8px;position:relative;cursor:pointer}
+  .enemy.sel{border-color:var(--enemy);box-shadow:0 0 0 3px #eec3d0}
+  .enemy .en{font-weight:800;color:var(--enemy);font-size:15px}
+  .enemy .intent{position:absolute;right:12px;top:10px;text-align:right;font-size:13px;color:var(--warn);font-weight:700}
+  .bar{height:16px;border-radius:8px;background:#e4d6b8;overflow:hidden;position:relative;margin-top:5px;border:1px solid var(--line)}
+  .bar>i{display:block;height:100%;transition:width .3s}
+  .hpv{position:absolute;left:8px;top:-1px;font-size:11px;font-weight:800;color:#3a3020}
+  .tags{font-size:11px;color:var(--sub);margin-top:3px}
+  .heroes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+  .hero{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:8px 10px}
+  .hero.active{border-color:var(--gold);box-shadow:0 0 0 3px #f0dca0}
+  .hero.downed{opacity:.5}
+  .hero .hh{display:flex;align-items:center;gap:8px;font-weight:800}
+  .hero .role{color:var(--sub);font-weight:400;font-size:12px}
+  .en2{margin-left:auto;color:var(--gold);font-weight:800}
+  .hand{margin-top:8px;min-height:120px}
+  .turnbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  .feed{background:#faf3e2;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:12.5px;max-height:120px;overflow:auto}
+  .feed div{padding:1px 0;border-bottom:1px dashed #e8dabc}
+  .overlay{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:16px;margin-top:10px}
+  .overlay h2{margin:2px 0 12px}
+  .choices{display:flex;gap:10px;flex-wrap:wrap}
+  .choice{flex:1;min-width:170px;background:var(--bg2);border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}
+  .choice:hover{border-color:var(--a)}
+  .choice .cn{font-weight:800;color:var(--a)} .choice .cd{font-size:12.5px;color:var(--sub);margin-top:4px}
+  .map{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0}
+  .node{padding:6px 9px;border-radius:9px;border:1px solid var(--line);background:var(--panel);font-size:12px;text-align:center}
+  .node.done{opacity:.4}.node.cur{border-color:var(--gold);box-shadow:0 0 0 2px #f0dca0;font-weight:800}
+  .banner{text-align:center;padding:34px 12px}.banner h2{font-size:26px}
+  .win h2{color:var(--good)}.lose h2{color:var(--warn)}
+  .hint{font-size:13px;color:var(--sub);margin-top:10px;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="app"><div id="screen" class="hint">載入引擎中…</div></div>
+<script src="engine.js"></script>
+<script>
+// UI 全部包在 IIFE 隔離作用域:engine.js 用 classic <script> 載入、其頂層 const/function(C/metaBuy…)
+// 會洩漏成全域、與 UI 同名宣告撞名("Identifier 'C' has already been declared")。包起來徹底隔離、
+// 只把 inline onclick 需要的少數 handler 掛到 window。
+(function(){
+const E=window.ENGINE;
+const META_KEY='coopidol_meta_v1';
+function loadMeta(){ try{return JSON.parse(localStorage.getItem(META_KEY))||{shards:0,ups:{}};}catch(e){return {shards:0,ups:{}};} }
+function saveMeta(m){ try{localStorage.setItem(META_KEY,JSON.stringify(m));}catch(e){} }
+let meta=loadMeta();
+let S=null, seedN=1, selTarget=null;
+const app=()=>document.getElementById('screen');
+function seed(){ seedN=(seedN*1103515245+12345)&0x7fffffff; return seedN; }
+
+function newRun(){ selTarget=null; S=E.initSelect(Date.now?((meta.runs||0)+7)*13+1:7, 1.0, meta); render(); }
+// 注意:引擎禁用 Date.now、但 UI 端可用;用計數當種子變化
+function startFresh(){ meta.runs=(meta.runs||0)+1; saveMeta(meta); S=E.initSelect(((meta.runs)*97+13)>>>0,1.0,meta); selTarget=null; render(); }
+
+function act(mv){ S=E.apply(S,mv); pump(); render(); }
+function pump(){ let g=0; while(E.whoseTurn(S)==='engine' && g++<50){ S=E.engineStep(S); } }
+function metaBuy(id){ meta=E.metaBuy(meta,id); saveMeta(meta); render(); }
+function setTarget(i){ selTarget=i; render(); }
+
+function C(k){ return E.C[k]||{n:k,d:'',c:0}; }
+function rarCls(k){ const r=E.rarity(k); return r==='R'?'rar-R':(r==='E'?'rar-E':''); }
+
+function render(){
+  if(!S){ app().innerHTML='引擎未載入(需與 engine.js 同目錄)'; return; }
+  const ph=S.phase;
+  if(ph==='select') return renderSelect();
+  if(ph==='win'||ph==='lose') return renderEnd();
+  // top bar (run 資訊)
+  let top=`<div class="top">`;
+  if(S.heroes){ top+=`<span class="pill">${S.heroes.A.name} ${S.heroes.A.hp}/${S.heroes.A.max}</span><span class="pill">${S.heroes.B.name} ${S.heroes.B.hp}/${S.heroes.B.max}</span>`; }
+  top+=`<span class="pill">🔗羈絆 <b>${S.run.bond}</b>/10</span><span class="pill">🧭探索值 <b>${S.run.explore||0}</b></span>`;
+  if(S.run.relics&&S.run.relics.length)top+=`<span class="pill">💠${S.run.relics.map(r=>E.relicName(r)).join('、')}</span>`;
+  top+=`<span class="pill">⭐星屑 <b>${meta.shards||0}</b></span></div>`;
+  // map strip
+  let mp='<div class="map">'+S.run.map.map((n,i)=>{ const cls=i<S.run.node?'done':(i===S.run.node?'cur':''); const ic={battle:'⚔',boss:'👑',campfire:'🏕',relic:'💠',shop:'🛒',chest:'🎁',fork:'🔀'}[n.t]||'•'; return `<span class="node ${cls}">${ic}</span>`; }).join('')+'</div>';
+  let body='';
+  if(ph==='map') body=renderMap();
+  else if(ph==='mapfork') body=renderFork();
+  else if(ph==='battle') body=renderBattle();
+  else if(ph==='draft') body=renderDraft();
+  else if(ph==='shop') body=renderShop();
+  else if(ph==='relic') body=renderRelic();
+  else if(ph==='campfire') body=renderCampfire();
+  app().innerHTML=top+mp+body;
+}
+
+function renderSelect(){
+  const picks=S.selPicks||[];
+  let h=`<h1>選 2 位英雄 <span class="sub">(已選 ${picks.length}/2)</span></h1><div class="choices">`;
+  E.ROSTER.forEach(id=>{ const d=E.HERO_DEFS[id]; const chosen=picks.includes(id);
+    h+=`<div class="choice" ${chosen?'style="opacity:.5"':`onclick="act({type:'select_hero',hero:'${id}'})"`}>
+      <div class="cn">${d.name} <span class="sub">${({attacker:'攻擊/爆發',guardian:'守護/破甲',control:'控制/放大',tempo:'速攻/連打'})[d.role]}</span></div>
+      <div class="cd">HP ${d.hp}${d.maxE?'·能量'+d.maxE:''}<br>體質:${d.pdesc||'—'}</div></div>`; });
+  h+='</div>';
+  // meta shop
+  h+=`<div class="overlay"><h2>⭐ 全局成長 <span class="sub">星屑 ${meta.shards||0}</span></h2><div class="choices">`;
+  Object.keys(E.META_UPS).forEach(id=>{ const u=E.META_UPS[id]; const lv=(meta.ups[id]||0); const cost=u.cost(lv); const max=lv>=u.max;
+    h+=`<div class="choice" ${max?'style="opacity:.5"':`onclick="metaBuy('${id}')"`}><div class="cn">${u.name} Lv${lv}/${u.max}</div><div class="cd">${u.d}<br>${max?'已滿':'花費 '+cost+' 星屑'}</div></div>`; });
+  h+=`</div></div><div class="hint">選滿 2 位開始冒險。體質=角色被動;全局成長跨局保留(星屑升級)。</div>`;
+  return h;
+}
+function renderMap(){ const n=S.run.map[S.run.node]; const nm={battle:'戰鬥',boss:'BOSS',campfire:'營火',relic:'遺物',shop:'商人',chest:'寶箱'}[n.t]||n.t;
+  return `<div class="overlay"><h2>前方:${nm}</h2><div class="sub">${n.e?('敵人:'+(Array.isArray(n.e)?n.e.map(x=>E.ENEMIES[x].n).join('、'):E.ENEMIES[n.e].n)):''}</div><br><button class="btn big" onclick="act({type:'map_advance'})">前進 ▶</button></div>`; }
+function renderFork(){ let h=`<div class="overlay"><h2>🔀 ${S.offer.label||'岔路'}</h2><div class="choices">`;
+  S.offer.choices.forEach(c=>{ h+=`<div class="choice" onclick="act({type:'map_choice',pick:${c.i}})"><div class="cn">選這條</div><div class="cd">${c.desc}</div></div>`; }); return h+'</div></div>'; }
+function renderDraft(){ const o=S.offer; const mv=E.legalMoves(S,o.hero); const canRm=mv.some(m=>m.type==='draft_pick'&&m.pick==='remove');
+  const title=o.kind==='chest'?('🎁 '+(o.tier||'')+'寶箱'):'戰利品';
+  let h=`<div class="overlay"><h2>${title} · ${S.heroes[o.hero].name} 選一張</h2><div>`;
+  o.cards.forEach(k=>{ const c=C(k); h+=`<div class="card ${rarCls(k)}" onclick="act({type:'draft_pick',pick:'${k}'})"><span class="cc">${c.c}</span><div class="cn">${c.n}</div><div class="cd">${c.d||''}</div><div class="tag">${c.fac||''} ·${E.rarity(k)}</div></div>`; });
+  h+=`</div><br><button class="btn sec" onclick="act({type:'draft_pick',pick:'skip'})">跳過(保持精簡)</button>`;
+  if(canRm) h+=` <button class="btn sec" onclick="act({type:'draft_pick',pick:'remove'})">改成移除一張基礎牌</button>`;
+  return h+`</div>`; }
+function renderShop(){ const c=E.shopCost(S), cc=E.shopCardCost(S), ex=S.run.explore||0;
+  let h=`<div class="overlay"><h2>🛒 商人 <span class="sub">你的探索值 ${ex}</span></h2><div class="choices">`;
+  const mv=E.legalMoves(S,'A');
+  const lbl={remove:'移除一張基礎牌',upgrade:'升級一張牌',card:'買一張稀有卡',leave:'離開'};
+  const costOf={remove:c,upgrade:c,card:cc,leave:0};
+  mv.filter(m=>m.type==='shop').forEach(m=>{ const co=costOf[m.act]||0; h+=`<div class="choice" onclick="act({type:'shop',act:'${m.act}'})"><div class="cn">${lbl[m.act]||m.act}</div><div class="cd">${m.act==='leave'?'不花費':'花費 <b style=color:var(--gold)>'+co+'</b> 探索值'}</div></div>`; });
+  return h+'</div></div>'; }
+function renderRelic(){ let h=`<div class="overlay"><h2>💠 遺物 二選一 <span class="sub">(永久·跨戰鬥)</span></h2><div class="choices">`;
+  S.offer.picks.forEach(r=>{ const d=E.RELIC_DEFS[r]||{n:r,d:''}; h+=`<div class="choice" onclick="act({type:'relic_pick',pick:'${r}'})"><div class="cn">💠 ${d.n}</div><div class="cd">${d.d}</div></div>`; });
+  return h+`</div></div>`; }
+function renderCampfire(){ let h=`<div class="overlay"><h2>🏕 營火</h2><div class="choices">`;
+  const mv=E.legalMoves(S,'A'); const lbl={rest:'休息(回血+探索值)',remove:'移除一張基礎牌',upgrade:'升級一張牌',explore:'探險(花3探索值換遺物)',leave:'離開'};
+  mv.filter(m=>m.type==='campfire').forEach(m=>{ h+=`<div class="choice" onclick="act({type:'campfire',choice:'${m.choice}'})"><div class="cn">${lbl[m.choice]||m.choice}</div></div>`; });
+  return h+'</div></div>'; }
+
+function renderBattle(){
+  const B=S.battle, who=E.whoseTurn(S);
+  let h='';
+  // enemies
+  B.enemies.forEach((e,i)=>{ if(e.hp<=0)return; const it=e.ins[e.ii%e.ins.length];
+    const itxt=intentText(e,it);
+    const wr=(e.weak?'弱:'+e.weak.join('/'):'')+(e.resist?' 抗:'+e.resist.join('/'):'');
+    const sel=selTarget===i?'sel':'';
+    h+=`<div class="enemy ${sel}" onclick="setTarget(${i})"><div class="en">${e.name} ${e.armor?'🛡'+e.armor:''} ${e.st&&e.st.weaken?'▼弱化':''} ${e.st&&e.st.vulnerable?'▲易傷':''}</div>
+      <div class="intent">意圖<br>${itxt}</div>
+      <div class="bar"><i style="width:${Math.max(0,e.hp/e.max*100)}%;background:linear-gradient(90deg,#a83254,#d2688a)"></i><span class="hpv">${e.hp}/${e.max}</span></div>
+      <div class="tags">${wr}${e.block?' 🛡格擋'+e.block:''}</div></div>`; });
+  if(B.summons&&B.summons.length) h+=`<div class="tags">召喚物:${B.summons.map(s=>s.kind+'('+s.rounds+')').join('、')}</div>`;
+  // heroes
+  h+='<div class="heroes">'+['A','B'].map(k=>hero(k,who)).join('')+'</div>';
+  // turnbar
+  h+=`<div class="turnbar"><span>第 ${B.round} 輪 · 輪到 <b>${who==='engine'?'敵人':S.heroes[who]?S.heroes[who].name:'—'}</b></span>`;
+  const mv=who==='A'||who==='B'?E.legalMoves(S,who):[];
+  mv.filter(m=>m.type==='use_bond').forEach(m=>{ const s=E.BOND_SKILLS[m.skill]; h+=` <button class="btn g" onclick="act({type:'use_bond',player:'${who}',skill:'${m.skill}'})">${s.n}(${s.cost}羈絆)</button>`; });
+  if(who==='A'||who==='B') h+=` <button class="btn sec" onclick="act({type:'end_turn',player:'${who}'})">結束 ${S.heroes[who].name} 回合 ▶</button>`;
+  h+=`</div>`;
+  if(selTarget!=null && B.enemies[selTarget] && B.enemies[selTarget].hp>0) h+=`<div class="sub">🎯 已選目標:${B.enemies[selTarget].name}(單體攻擊會打它;不選=打最低血)</div>`;
+  // hand
+  if(who==='A'||who==='B'){ const cs=B.combat[who]; h+='<div class="hand">'+cs.hand.map((k,i)=>{ const c=C(k); const noB=c.bondcost&&S.run.bond<c.bondcost; const dis=cs.energy<c.c||noB;
+    return `<div class="card ${rarCls(k)} ${dis?'dis':''}" ${dis?'':`onclick="act({type:'play_card',player:'${who}',cardIdx:${i},target:selTarget})"`}><span class="cc">${c.c}</span><div class="cn">${c.n}</div><div class="cd">${c.d||''}</div><div class="tag">${c.fac||''}${c.elem?'·'+c.elem:''}</div></div>`; }).join('')+'</div>'; }
+  else h+='<div class="hand sub">敵人行動中…（自動）</div>';
+  // feed
+  if(B.feed&&B.feed.length) h+='<div class="feed">'+B.feed.slice(0,10).map(x=>`<div>· ${x}</div>`).join('')+'</div>';
+  return h;
+}
+function intentText(e,it){ const wk=e.st&&e.st.weaken?e.st.weaken.v:0; const rg=e.enraged?e.enraged:0;
+  const v=(base)=>Math.max(0,base+ (rg?rg:0) - wk); // 粗估顯示
+  return {smash:'重擊 '+v(it.v)+'→'+(it.tgt||'?'),pinch:'夾擊 '+v(it.v),splash:'噴濺 '+v(it.v)+' 全體',sweep:'橫掃 '+v(it.v)+' 全體',guard:'蓄防',summon:'召喚小兵',heal_self:'自療',shock:'放電',bleed:'流血 全體'}[it.t]||it.t; }
+function hero(k,who){ const p=S.battle.combat[k], H=S.heroes[k]; const st=p.st||{};
+  const stx=[st.empower?'★鼓舞'+st.empower.v:'',st.focus?'✦蓄力':'',st.sustain?'⚔戰意'+st.sustain.v:'',st.battlefield?'⚔戰域'+st.battlefield.v:'',st.teamAtk?'⚔全隊'+st.teamAtk.v:'',st.extraDraw?'✎多抽'+st.extraDraw.v:''].filter(Boolean).join(' ');
+  return `<div class="hero ${who===k?'active':''} ${p.downed?'downed':''}"><div class="hh">${H.name} <span class="role">${({attacker:'攻手',guardian:'守護',control:'控制',tempo:'速攻'})[H.role]}</span><span class="en2">⚡${p.energy}/${p.maxE}</span></div>
+    <div class="bar"><i style="width:${Math.max(0,H.hp/H.max*100)}%;background:linear-gradient(90deg,${k==='A'?'#c8621e,#e08a4e':'#1f7a8c,#4ba9ba'})"></i><span class="hpv">${H.hp}/${H.max}${p.downed?' 倒':''}</span></div>
+    <div class="tags">${p.block?'🛡'+p.block:''} ${stx}</div></div>`; }
+
+function renderEnd(){ const win=S.phase==='win';
+  if(!S._earned){ const sh=S.run.node*2+(win?15:0)+Math.floor((S.run.clearScore||0)/5); meta.shards=(meta.shards||0)+sh; saveMeta(meta); S._earned=sh; }
+  return `<div class="banner ${win?'win':'lose'}"><h2>${win?'☀️ 通關!':'兩人都倒下了…'}</h2>
+    <div>${win?('通關評分 '+(S.run.clearScore||0)+' · 寶箱 '+(S.run.clearChest||'—')):'下次再一起接住彼此'}</div>
+    <div class="hint">獲得 ⭐${S._earned} 星屑(已存·跨局)。目前星屑 ${meta.shards}。<br>回選角畫面可用星屑做全局成長、再挑戰。</div>
+    <br><button class="btn big" onclick="startFresh()">再來一局(帶著成長)</button></div>`;
+}
+// 只把 inline onclick 用到的 handler 掛上 window(其餘全隔離在 IIFE 內、不污染全域)
+window.act=act; window.metaBuy=metaBuy; window.startFresh=startFresh; window.render=render; window.setTarget=setTarget;
+startFresh();
+})();
+</script>
+</body>
+</html>

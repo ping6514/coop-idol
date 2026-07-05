@@ -1,0 +1,1 @@
+# 合作肉鴿卡牌 · Co-op Roguelike Deckbuilder\n\n雙人合作·殺戮尖塔式肉鴿卡牌。純前端零框架(engine.js確定性引擎 + index.html薄客戶端)。\n\n**線上遊玩**: https://ping6514.github.io/coop-idol/\n\n- 選 2 位英雄(魚乾/水母/丸子/金魚)開跑\n- 戰鬥/戰利品/商人/遺物/營火/BOSS\n- 星屑跨局全局成長(存瀏覽器localStorage)\n
