@@ -279,13 +279,16 @@ function legalMoves(S,player){
   if(S.phase==='draft'){ const dh=S.offer.hero; S.offer.cards.forEach(c=>M.push({type:'draft_pick',player:dh,pick:c})); M.push({type:'draft_pick',player:dh,pick:'skip'}); if(hasRemovable(S,dh)) M.push({type:'draft_pick',player:dh,pick:'remove'}); return M; } // 獎勵可改成移除一張=牌組精簡主動選擇
   if(S.phase==='battle'){
     const t=S.battle.turn; if(t!==player) return M;
-    if(S.battle.combat[player].downed){ M.push({type:'end_turn',player}); return M; } // 倒下只能pass
+    const ally=(player==='A'?'B':'A');
+    if(S.battle.combat[player].downed){ if(!S.battle.combat[ally].downed)M.push({type:'switch_hero',player}); M.push({type:'end_turn',player},{type:'end_team',player}); return M; } // 倒下:可切換到活著的隊友或直接結束回合
     const cs=S.battle.combat[player];
-    if((S.battle.cardsThisRound||0)<40){ // 防迴圈保證:單回合出牌破40(如0費抽牌卡循環)就只剩end_turn、強制回合推進(配合round>15 decay保證終止);40遠高於任何合理連打
+    if((S.battle.cardsThisRound||0)<40){ // 防迴圈保證:單回合出牌破40(如0費抽牌卡循環)就只剩end、強制回合推進(配合round>15 decay保證終止);40遠高於任何合理連打
       cs.hand.forEach((k,i)=>{ const c=C[k]; if(cs.energy>=c.c && !(c.bondcost&&S.run.bond<c.bondcost)) M.push({type:'play_card',player,cardIdx:i}); });
       Object.keys(BOND_SKILLS).forEach(sk=>{ if(S.run.bond>=BOND_SKILLS[sk].cost) M.push({type:'use_bond',player,skill:sk}); });
     }
-    M.push({type:'end_turn',player});
+    if(!S.battle.combat[ally].downed) M.push({type:'switch_hero',player}); // 自由切換操縱角色(不影響回合進度·UI用)
+    M.push({type:'end_turn',player});   // 保留:AI adapter 用(pass 語意·連2次pass換敵人)
+    M.push({type:'end_team',player});    // 結束雙方回合→敵人行動(UI一鍵結束用)
   }
   return M;
 }
@@ -335,6 +338,8 @@ function apply(S,m){
     if(m.skill==='wall'){ B.immune.A=true;B.immune.B=true;B.dbl=true; B.feed.unshift('羈絆技·絕對防線!'); }
     return S; }
   if(m.type==='end_turn'){ endTurn(S); return S; }
+  if(m.type==='switch_hero'){ const ally=(m.player==='A'?'B':'A'); if(!B.combat[ally].downed){ B.turn=ally; B.atk=0; } return S; } // 自由切換操縱角色:純換手、不計pass、不推進回合
+  if(m.type==='end_team'){ B.passStreak=2; return S; } // 一鍵結束雙方回合→whoseTurn變engine→敵人行動
   if(m.type==='play_card'){
     const k=p.hand[m.cardIdx], c=C[k]; if(!c||p.energy<c.c) return S; if(c.bondcost&&S.run.bond<c.bondcost) return S;
     B._actor=m.player; // 擊殺獎勵歸屬:這張牌造成的擊殺算此人

@@ -204,10 +204,12 @@ function renderBattle(){
   // heroes
   h+='<div class="heroes">'+['A','B'].map(k=>hero(k,who)).join('')+'</div>';
   // turnbar
-  h+=`<div class="turnbar"><span>第 ${B.round} 輪 · 輪到 <b>${who==='engine'?'敵人':S.heroes[who]?S.heroes[who].name:'—'}</b></span>`;
+  h+=`<div class="turnbar"><span>第 ${B.round} 輪 · 操縱 <b>${who==='engine'?'敵人':S.heroes[who]?S.heroes[who].name:'—'}</b></span>`;
   const mv=who==='A'||who==='B'?E.legalMoves(S,who):[];
   mv.filter(m=>m.type==='use_bond').forEach(m=>{ const s=E.BOND_SKILLS[m.skill]; h+=` <button class="btn g" onclick="act({type:'use_bond',player:'${who}',skill:'${m.skill}'})">${s.n}(${s.cost}羈絆)</button>`; });
-  if(who==='A'||who==='B') h+=` <button class="btn sec" onclick="act({type:'end_turn',player:'${who}'})">結束 ${S.heroes[who].name} 回合 ▶</button>`;
+  if(who==='A'||who==='B'){ const ally=who==='A'?'B':'A';
+    if(!B.combat[ally].downed) h+=` <button class="btn" onclick="act({type:'switch_hero',player:'${who}'})">🔄 換 ${S.heroes[ally].name} 操縱</button>`; // 自由切換角色(不結束回合)
+    h+=` <button class="btn sec" onclick="act({type:'end_team',player:'${who}'})">結束回合 ▶（敵人行動）</button>`; } // 一鍵結束雙方回合
   h+=`</div>`;
   const aliveN=B.enemies.filter(e=>e.hp>0).length;
   if(selTarget!=null && B.enemies[selTarget] && B.enemies[selTarget].hp>0) h+=`<div class="sub">🎯 已選目標:<b>${B.enemies[selTarget].name}</b> · 單體攻擊會打它(再點一次取消;不選=自動打血最少的)</div>`;
