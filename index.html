@@ -73,9 +73,12 @@
 // 只把 inline onclick 需要的少數 handler 掛到 window。
 (function(){
 const E=window.ENGINE;
-const META_KEY='coopidol_meta_v1';
+const META_KEY='coopidol_meta_v1', RUN_KEY='coopidol_run_v2';
 function loadMeta(){ try{return JSON.parse(localStorage.getItem(META_KEY))||{shards:0,ups:{}};}catch(e){return {shards:0,ups:{}};} }
 function saveMeta(m){ try{localStorage.setItem(META_KEY,JSON.stringify(m));}catch(e){} }
+function saveRun(s){ try{ if(s) localStorage.setItem(RUN_KEY,JSON.stringify({v:2,S:s})); }catch(e){} } // 隨時存檔:整局狀態存localStorage(手機重整不丟)
+function loadRun(){ try{ const o=JSON.parse(localStorage.getItem(RUN_KEY)); return (o&&o.v===2&&o.S)?o.S:null; }catch(e){return null;} }
+function clearRun(){ try{localStorage.removeItem(RUN_KEY);}catch(e){} }
 let meta=loadMeta();
 let S=null, seedN=1, selTarget=null;
 const app=()=>document.getElementById('screen');
@@ -127,6 +130,7 @@ function rarCls(k){ const r=E.rarity(k); return r==='R'?'rar-R':(r==='E'?'rar-E'
 
 function render(){
   if(!S){ app().innerHTML='引擎未載入(需與 engine.js 同目錄)'; return; }
+  saveRun(S); // 隨時存檔:每次畫面更新就存整局(重整可續)
   const ph=S.phase;
   if(ph==='select'){ app().innerHTML=renderSelect(); return; }   // 修:select/end 要賦值給 innerHTML(舊版只 return 字串→一開局就卡在「載入引擎中…」)
   if(ph==='famselect'){ app().innerHTML=renderFamSelect(); return; }
@@ -258,7 +262,8 @@ function renderEnd(){ const win=S.phase==='win';
 }
 // 只把 inline onclick 用到的 handler 掛上 window(其餘全隔離在 IIFE 內、不污染全域)
 window.act=act; window.metaBuy=metaBuy; window.startFresh=startFresh; window.render=render; window.setTarget=setTarget; window.playCard=playCard;
-startFresh();
+// 開場:有存檔就續玩(手機重整不丟進度)、否則開新局
+(function boot(){ const saved=loadRun(); if(saved && saved.phase && saved.phase!=='win' && saved.phase!=='lose'){ S=saved; selTarget=null; pump(); render(); } else { startFresh(); } })();
 })();
 </script>
 </body>
