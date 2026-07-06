@@ -72,7 +72,7 @@
 (function(){
 const E=window.ENGINE;
 const META_KEY='coopidol_meta_v1';
-function loadMeta(){ try{return JSON.parse(localStorage.getItem(META_KEY))||{shards:0,ups:{}};}catch(e){return {shards:0,ups:{}};} }
+function loadMeta(){ try{const m=JSON.parse(localStorage.getItem(META_KEY))||{}; if(!m.ups)m.ups={}; return m;}catch(e){return {shards:0,ups:{}};} }
 function saveMeta(m){ try{localStorage.setItem(META_KEY,JSON.stringify(m));}catch(e){} }
 let meta=loadMeta();
 let S=null, seedN=1, selTarget=null;

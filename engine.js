@@ -392,7 +392,7 @@ function engineStep(S){
     B.summons=B.summons.filter(su=>su.rounds>0);
     if(allDead(S)){ winBattle(S); return S; }
   }
-  for(const e of B.enemies){
+  for(const e of B.enemies.slice()){ // snapshot:防止 push 的小兵在同輪立即行動
     if(e.hp<=0) continue;
     const bn=getV(e,'burn'); if(bn>0){ e.hp=Math.max(0,e.hp-bn); applyStatus(e,'burn',-3); if(e.hp<=0){ onEnemyDeath(S,e); continue; } } // 燃燒DoT:每回合-bn、bn再-3衰減
     const it=e.ins[e.ii%e.ins.length];
