@@ -331,7 +331,7 @@ function apply(S,m){
   const B=S.battle, p=B.combat[m.player], foe=B.combat[m.player==='A'?'B':'A'];
   const target = (m.target!=null && B.enemies[m.target] && B.enemies[m.target].hp>0) ? B.enemies[m.target] : lowestAlive(S);
   if(m.type==='use_bond'){ const s=BOND_SKILLS[m.skill]; if(S.run.bond<s.cost)return S; S.run.bond-=s.cost; B.passStreak=0;
-    if(m.skill==='burst'){ applyStatus(B.combat.A,'empower',20); B.combat.B.block+=10; B.feed.unshift('羈絆技·共鳴爆發! 炎+20 凪+10盾'); }
+    if(m.skill==='burst'){ applyStatus(B.combat.A,'empower',20); B.combat.B.block+=10; B.feed.unshift(`羈絆技·共鳴爆發! ${S.heroes.A.name}+20攻 ${S.heroes.B.name}+10盾`); }
     if(m.skill==='wall'){ B.immune.A=true;B.immune.B=true;B.dbl=true; B.feed.unshift('羈絆技·絕對防線!'); }
     return S; }
   if(m.type==='end_turn'){ endTurn(S); return S; }
