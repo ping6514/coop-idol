@@ -200,7 +200,7 @@ function assignHeroes(S,picks){ // 依選角(2個hero-id)指派 slot A/B + 填 P
              B:{id:picks[1],name:db.name,hp:db.hp,max:db.hp,deck:db.start.slice(),role:db.role} };
 }
 function baseRun(seed,coef,meta){ return { seed, rng:(seed||1)>>>0, log:[],
-  run:{node:0, gold:0, bond:0, explore:0, coef:(coef||1), shopCounter:3, relics:[], map:buildMap(meta)}, battle:null, offer:null }; }
+  run:{node:0, gold:0, bond:0, explore:0, coef:(coef||1), shopCounter:3, relics:[], fam:{A:null,B:null}, map:buildMap(meta)}, battle:null, offer:null }; }
 function init(seed,coef,picks,meta){ // 直接開局(headless/給定選角);預設炎+凪;meta=全局成長(含ch1cleared解鎖第二章)
   const S=baseRun(seed,coef,meta); S.phase='map'; assignHeroes(S,(picks&&picks.length===2)?picks:['yugan','shuimu']); if(meta)applyMeta(S,meta); return S;
 }
@@ -252,19 +252,21 @@ function startRound(S,first){
     if(first&&pas==='startDraw') draw(S,cs,1);              // 丸子洞悉:開場多抽1
     if(first&&pas==='firstStrike') cs.firstStrike=true;      // 魚乾首擊爆發:標記
     const ex=Math.min(getV(cs,'extraDraw'),2); if(ex>0) draw(S,cs,ex); // 回合開始多抽、+2硬上限(讀取在 tick 前)
-    tickStatuses(cs); } // battlefield(reset)清、sustain/extraDraw(round)遞減、及未來所有英雄 status
+    tickStatuses(cs); // battlefield(reset)清、sustain/extraDraw(round)遞減、及未來所有英雄 status
+    fireFamiliar(S,h,'roundStart',{round:B.round}); } // 使魔:回合開始觸發(蝦捲抽牌·光仔能量)
   B.turn='A'; B.atk=0; B.cardsThisRound=0; B.dmgThisRound=0; B.passStreak=0;
 }
 
 /* ---- 合法動作 ---- */
 function whoseTurn(S){
-  if(S.phase==='select'||S.phase==='map'||S.phase==='campfire'||S.phase==='relic'||S.phase==='draft'||S.phase==='mapfork'||S.phase==='shop') return 'human'; // 選單類、任一方(或裁判前進)
+  if(S.phase==='select'||S.phase==='famselect'||S.phase==='map'||S.phase==='campfire'||S.phase==='relic'||S.phase==='draft'||S.phase==='mapfork'||S.phase==='shop') return 'human'; // 選單類、任一方(或裁判前進)
   if(S.phase==='battle'){ if((S.battle.passStreak||0)>=2) return 'engine'; return S.battle.turn; }
   return 'engine';
 }
 function legalMoves(S,player){
   const M=[];
   if(S.phase==='select'){ ROSTER.filter(h=>!S.selPicks.includes(h)).forEach(h=>M.push({type:'select_hero',hero:h})); return M; } // 4選2
+  if(S.phase==='famselect'){ FAMILIARS_K.forEach(f=>M.push({type:'select_familiar',fam:f})); return M; } // 每人選1使魔(4選1)
   if(S.phase==='map'){ M.push({type:'map_advance'}); return M; }
   if(S.phase==='mapfork'){ S.offer.choices.forEach(c=>M.push({type:'map_choice',pick:c.i})); return M; }
   if(S.phase==='campfire'){ M.push({type:'campfire',choice:'rest'},{type:'campfire',choice:'remove'},{type:'campfire',choice:'upgrade'},{type:'campfire',choice:'leave'});
@@ -303,7 +305,8 @@ function hitEnemy(S,d,te,pierceArmor,elem){ if(!te||te.hp<=0) return 0; let dmg=
   te.hp=Math.max(0,te.hp-dmg); S.battle.atk++; S.battle.dmgThisRound=(S.battle.dmgThisRound||0)+dmg;
   if(te.hp<=0) onEnemyDeath(S,te); return dmg; }
 function apply(S,m){
-  if(m.type==='select_hero'){ if(S.selPicks.length<2 && !S.selPicks.includes(m.hero)) S.selPicks.push(m.hero); if(S.selPicks.length>=2){ assignHeroes(S,S.selPicks); if(S._meta)applyMeta(S,S._meta); S.phase='map'; } return S; } // 選滿2人→套meta→開始
+  if(m.type==='select_hero'){ if(S.selPicks.length<2 && !S.selPicks.includes(m.hero)) S.selPicks.push(m.hero); if(S.selPicks.length>=2){ assignHeroes(S,S.selPicks); if(S._meta)applyMeta(S,S._meta); S.phase='famselect'; S.famQueue=['A','B']; } return S; } // 選滿2人→套meta→進使魔選擇
+  if(m.type==='select_familiar'){ const h=S.famQueue&&S.famQueue[0]; if(h){ S.run.fam[h]=m.fam; S.famQueue.shift(); } if(!S.famQueue||!S.famQueue.length){ S.phase='map'; } return S; } // 每人選1使魔→選完開跑
   if(m.type==='map_advance'){ enterNode(S); return S; }
   if(m.type==='map_choice'){ const fork=S.run.map[S.run.node]; const chosen=fork&&fork.choices[m.pick];
     if(chosen){ S.run.map.splice(S.run.node+1,0,...chosen.nodes.map(x=>Object.assign({},x))); } // 選中路徑接在岔路後、走完自然匯流回主線
@@ -344,8 +347,9 @@ function apply(S,m){
     const k=p.hand[m.cardIdx], c=C[k]; if(!c||p.energy<c.c) return S; if(c.bondcost&&S.run.bond<c.bondcost) return S;
     B._actor=m.player; // 擊殺獎勵歸屬:這張牌造成的擊殺算此人
     p.energy-=c.c; if(c.bondcost)S.run.bond-=c.bondcost;
+    let _bigHit=0; // 本張牌最大單次傷害(使魔碇用)
     if(c.atk!=null){ let bonus=(c.bonus||0)+sumAtk(p)+(S.run.dmgUp||0); if(p.firstStrike){bonus+=3;p.firstStrike=false;B.feed.unshift(`${S.heroes[m.player].name}首擊爆發+3`);} let hits=c.hits||1; // 加成＝Σ myAtk hook + 魚乾首擊被動 + 全局銳氣dmgUp
-      for(let i=0;i<hits;i++){ const dmg=c.atk+(i===0?bonus:0); if(c.aoe){ aliveEnemies(S).forEach(te=>hitEnemy(S,dmg,te,false,c.elem)); } else { hitEnemy(S,dmg,target,false,c.elem); } } // 帶元素
+      for(let i=0;i<hits;i++){ const dmg=c.atk+(i===0?bonus:0); if(c.aoe){ aliveEnemies(S).forEach(te=>{ const dl=hitEnemy(S,dmg,te,false,c.elem); if(dl>_bigHit)_bigHit=dl; }); } else { const dl=hitEnemy(S,dmg,target,false,c.elem); if(dl>_bigHit)_bigHit=dl; } } // 帶元素·記最大單次傷
       const emp=getV(p,'empower'); if(emp){B.feed.unshift(`${S.heroes[m.player].name}攻擊+${emp}(隊友鼓舞)`);} removeStatus(p,'empower'); removeStatus(p,'focus'); } // use型:攻擊後消耗
     if(c.focus) applyStatus(p,'focus',c.focus);
     if(c.selfblock!=null && !p.noblock) p.block+=c.selfblock;
@@ -376,6 +380,8 @@ function apply(S,m){
     // heal 特例：治療隊友的是英雄 hp(可救起倒下隊友)
     if(c.cross==='heal'){ const th=(foe===B.combat.A)?'A':'B'; const was=B.combat[th].downed; S.heroes[th].hp=Math.min(S.heroes[th].max,S.heroes[th].hp+c.v); if(was){B.combat[th].downed=false; S.heroes[th].hp=Math.max(S.heroes[th].hp,8); B.feed.unshift('把倒下的隊友救起來了!');} }
     if(c.bond) gainBond(S,c.bond,m.player,c.n);
+    if(isDefCard(c)) fireFamiliar(S,m.player,'playDef',{}); // 使魔:出防禦牌計數(薯條)
+    if(_bigHit>0) fireFamiliar(S,m.player,'bigHit',{dmg:_bigHit}); // 使魔:大傷觸發(碇)
     p.disc.push(k); p.hand.splice(m.cardIdx,1); B.cardsThisRound=(B.cardsThisRound||0)+1; B.passStreak=0;
     if(allDead(S)) winBattle(S);
     return S;
@@ -464,6 +470,7 @@ function enterNode(S){
 }
 function shopCost(S){ return Math.round(S.run.shopCounter * (S.run.coef||1)); } // 移除/升級共用價(×地城係數)
 function shopCardCost(S){ return Math.round(4 * (S.run.coef||1)); }
+function famCost(S){ return Math.round(5 * (S.run.coef||1)); } // 使魔售價(比稀有卡略高)
 const RELIC_DEFS={
   watch:{n:'懷錶',d:'每場戰鬥首回合 +1 能量'},
   totem:{n:'共鳴圖騰',d:'隊友替你擋刀(給格擋)時、你自己也 +2 格擋'},
@@ -472,6 +479,24 @@ const RELIC_DEFS={
 };
 const RELICS_K={watch:1,totem:1,tome:1,bondr:1};
 function relicName(r){ return (RELIC_DEFS[r]&&RELIC_DEFS[r].n)||r; }
+/* ---- 使魔系統(觸發式被動·每人一隻·開場選·當角色專屬被動·低耦合registry·加新使魔只加一格) ---- */
+const FAMILIAR_DEFS={ // fx 的 ctx.owner=持有這隻使魔的英雄('A'/'B')。ftype:playDef(出防禦牌every次)/bigHit(單擊≥thresh)/roundStart(回合開始·every=round整除)
+  fries:{n:'🍟薯條',d:'每出3張防禦牌→隨機給一位隊友攻擊+2(2回合)', ftype:'playDef', every:3, fx:(S,ctx)=>{ const hs=['A','B'].filter(h=>!S.battle.combat[h].downed); if(hs.length){ const h=hs[ri(S,hs.length)]; applyStatus(S.battle.combat[h],'sustain',2,2); S.battle.feed.unshift(`🍟薯條:${S.heroes[h].name}攻擊+2(2回合)`);} }},
+  anchor:{n:'⚓碇',d:'自己單次攻擊對敵≥15傷→自己+3格擋(每場上限3次)', ftype:'bigHit', thresh:15, limit:3, fx:(S,ctx)=>{ const cs=S.battle.combat[ctx.owner]; if(cs){ cs.block+=3; S.battle.feed.unshift(`⚓碇:${S.heroes[ctx.owner].name}+3格擋`);} }},
+  shrimproll:{n:'🍤蝦捲',d:'每回合開始自己多抽1張(輔助抽牌)', ftype:'roundStart', every:1, fx:(S,ctx)=>{ const cs=S.battle.combat[ctx.owner]; if(cs&&!cs.downed){ draw(S,cs,1); S.battle.feed.unshift(`🍤蝦捲:${S.heroes[ctx.owner].name}多抽1`);} }},
+  lightkid:{n:'✨光仔',d:'第3/6/9…回合開始自己+2能量', ftype:'roundStart', every:3, fx:(S,ctx)=>{ const cs=S.battle.combat[ctx.owner]; if(cs&&!cs.downed){ cs.energy+=2; S.battle.feed.unshift(`✨光仔:${S.heroes[ctx.owner].name}+2能量`);} }},
+};
+const FAMILIARS_K=Object.keys(FAMILIAR_DEFS);
+function famName(f){ return (FAMILIAR_DEFS[f]&&FAMILIAR_DEFS[f].n)||f; }
+function isDefCard(c){ return !!(c && (c.selfblock>0 || c.cross==='block' || c.fac==='銅牆')); } // 防禦類牌判定(薯條計數用)
+function fireFamiliar(S,hero,event,ctx){ const id=S.run.fam&&S.run.fam[hero]; if(!id)return; const F=FAMILIAR_DEFS[id]; if(!F||F.ftype!==event)return; // 每人一隻:查該英雄自己的使魔
+  const B=S.battle; if(!B)return; if(!B.fam)B.fam={c:{},u:{}}; const key=hero+':'+id;
+  if(F.limit && (B.fam.u[key]||0)>=F.limit) return; // 每場觸發上限(per-hero)
+  let fire=false;
+  if(event==='playDef'){ B.fam.c[key]=(B.fam.c[key]||0)+1; if(B.fam.c[key]>=F.every){ B.fam.c[key]=0; fire=true; } } // 累計N次
+  else if(event==='bigHit'){ if((ctx.dmg||0)>=F.thresh) fire=true; }
+  else if(event==='roundStart'){ if((F.every||1)<=1 || (ctx.round%F.every===0)) fire=true; } // every=1每回合·every=3整除觸發
+  if(fire){ F.fx(S,{...ctx,owner:hero}); B.fam.u[key]=(B.fam.u[key]||0)+1; } }
 function removeBasic(S){ // 移除一張基礎牌以減少流派稀釋(優先移A多餘打擊、B多餘格擋)
   const tryRm=(h,card)=>{ const d=S.heroes[h].deck; const i=d.indexOf(card); const cnt=d.filter(x=>x===card).length; if(i>=0&&cnt>1){ d.splice(i,1); return true; } return false; };
   if(tryRm('A','strike')||tryRm('B','block')||tryRm('A','guardself')||tryRm('B','ironwall')) return;
@@ -593,7 +618,7 @@ function runGame(seed,adapters,verbose){
   return {result:isTerminal(S), node:S.run.node, round:S.battle?S.battle.round:'-', A:S.heroes.A.hp, B:S.heroes.B.hp, bond:S.run.bond, explore:S.run.explore, coef:S.run.coef, clearScore:S.run.clearScore, clearChest:S.run.clearChest, shards:S.run.node*2+(S.phase==='win'?15:0)+Math.floor((S.run.clearScore||0)/5), decks:{A:S.heroes.A.deck.length,B:S.heroes.B.deck.length}, relics:S.run.relics};
 }
 
-const ENGINE_API={ init, initSelect, legalMoves, apply, whoseTurn, engineStep, isTerminal, runGame, greedy, smart, C, ENEMIES, BOND_SKILLS, rarity, UPGRADE, HERO_DEFS, ROSTER, META_UPS, metaBuy, RELIC_DEFS, relicName, shopCost, shopCardCost, hasRemovable };
+const ENGINE_API={ init, initSelect, legalMoves, apply, whoseTurn, engineStep, isTerminal, runGame, greedy, smart, C, ENEMIES, BOND_SKILLS, rarity, UPGRADE, HERO_DEFS, ROSTER, META_UPS, metaBuy, RELIC_DEFS, relicName, shopCost, shopCardCost, hasRemovable, FAMILIAR_DEFS, famName, famCost };
 if(typeof module!=='undefined'&&module.exports){ module.exports=ENGINE_API; } // Node
 if(typeof window!=='undefined'){ window.ENGINE=ENGINE_API; } // 瀏覽器:掛到 window.ENGINE 供 UI 用
 

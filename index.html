@@ -129,6 +129,7 @@ function render(){
   if(!S){ app().innerHTML='引擎未載入(需與 engine.js 同目錄)'; return; }
   const ph=S.phase;
   if(ph==='select'){ app().innerHTML=renderSelect(); return; }   // 修:select/end 要賦值給 innerHTML(舊版只 return 字串→一開局就卡在「載入引擎中…」)
+  if(ph==='famselect'){ app().innerHTML=renderFamSelect(); return; }
   if(ph==='win'||ph==='lose'){ app().innerHTML=renderEnd(); return; }
   // top bar (run 資訊)
   let top=`<div class="top">`;
@@ -162,6 +163,17 @@ function renderSelect(){
   Object.keys(E.META_UPS).forEach(id=>{ const u=E.META_UPS[id]; const lv=(meta.ups[id]||0); const cost=u.cost(lv); const max=lv>=u.max;
     h+=`<div class="choice" ${max?'style="opacity:.5"':`onclick="metaBuy('${id}')"`}><div class="cn">${u.name} Lv${lv}/${u.max}</div><div class="cd">${u.d}<br>${max?'已滿':'花費 '+cost+' 星屑'}</div></div>`; });
   h+=`</div></div><div class="hint">選滿 2 位開始冒險。體質=角色被動;全局成長跨局保留(星屑升級)。</div>`;
+  return h;
+}
+function renderFamSelect(){ const h0=(S.famQueue&&S.famQueue[0]); const hero=h0&&S.heroes[h0];
+  let h=`<h1>為 <span style="color:var(--a)">${hero?hero.name:''}</span> 選 1 隻使魔 <span class="sub">(專屬觸發被動·像偶像大師選卡)</span></h1>`;
+  // 已選的顯示
+  const done=['A','B'].filter(x=>S.run.fam[x]).map(x=>`${S.heroes[x].name}→${E.famName(S.run.fam[x])}`);
+  if(done.length) h+=`<div class="hint">已選:${done.join('、')}</div>`;
+  h+='<div class="choices">';
+  Object.keys(E.FAMILIAR_DEFS).forEach(f=>{ const d=E.FAMILIAR_DEFS[f];
+    h+=`<div class="choice" onclick="act({type:'select_familiar',fam:'${f}'})"><div class="cn">${d.n}</div><div class="cd">${d.d}</div></div>`; });
+  h+=`</div><div class="hint">兩位英雄各挑一隻專屬使魔;戰鬥中滿足條件自動觸發。</div>`;
   return h;
 }
 function renderMap(){ const n=S.run.map[S.run.node]; const nm={battle:'戰鬥',boss:'BOSS',campfire:'營火',relic:'遺物',shop:'商人',chest:'寶箱'}[n.t]||n.t;
@@ -230,7 +242,8 @@ function intentText(e,it){ const wk=e.st&&e.st.weaken?e.st.weaken.v:0; const rg=
   return {smash:'重擊 '+v(it.v)+'→'+(it.tgt||'?'),pinch:'夾擊 '+v(it.v),splash:'噴濺 '+v(it.v)+' 全體',sweep:'橫掃 '+v(it.v)+' 全體',guard:'蓄防',summon:'召喚小兵',heal_self:'自療',shock:'放電',bleed:'流血 全體'}[it.t]||it.t; }
 function hero(k,who){ const p=S.battle.combat[k], H=S.heroes[k]; const st=p.st||{};
   const stx=[st.empower?'★鼓舞'+st.empower.v:'',st.focus?'✦蓄力':'',st.sustain?'⚔戰意'+st.sustain.v:'',st.battlefield?'⚔戰域'+st.battlefield.v:'',st.teamAtk?'⚔全隊'+st.teamAtk.v:'',st.extraDraw?'✎多抽'+st.extraDraw.v:''].filter(Boolean).join(' ');
-  return `<div class="hero ${who===k?'active':''} ${p.downed?'downed':''}"><div class="hh">${H.name} <span class="role">${({attacker:'攻手',guardian:'守護',control:'控制',tempo:'速攻'})[H.role]}</span><span class="en2">⚡${p.energy}/${p.maxE}</span></div>
+  const fam=S.run.fam&&S.run.fam[k];
+  return `<div class="hero ${who===k?'active':''} ${p.downed?'downed':''}"><div class="hh">${H.name} <span class="role">${({attacker:'攻手',guardian:'守護',control:'控制',tempo:'速攻'})[H.role]}</span>${fam?`<span class="role" title="${E.FAMILIAR_DEFS[fam].d}">·${E.famName(fam)}</span>`:''}<span class="en2">⚡${p.energy}/${p.maxE}</span></div>
     <div class="bar"><i style="width:${Math.max(0,H.hp/H.max*100)}%;background:linear-gradient(90deg,${k==='A'?'#c8621e,#e08a4e':'#1f7a8c,#4ba9ba'})"></i><span class="hpv">${H.hp}/${H.max}${p.downed?' 倒':''}</span></div>
     <div class="tags">${p.block?'🛡'+p.block:''} ${stx}</div></div>`; }
 
