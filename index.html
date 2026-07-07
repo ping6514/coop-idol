@@ -74,7 +74,7 @@
 (function(){
 const E=window.ENGINE;
 const META_KEY='coopidol_meta_v1', RUN_KEY='coopidol_run_v2';
-function loadMeta(){ try{return JSON.parse(localStorage.getItem(META_KEY))||{shards:0,ups:{}};}catch(e){return {shards:0,ups:{}};} }
+function loadMeta(){ try{const m=JSON.parse(localStorage.getItem(META_KEY))||{}; if(!m.ups)m.ups={}; return m;}catch(e){return {shards:0,ups:{}};} }
 function saveMeta(m){ try{localStorage.setItem(META_KEY,JSON.stringify(m));}catch(e){} }
 function saveRun(s){ try{ if(s) localStorage.setItem(RUN_KEY,JSON.stringify({v:2,S:s})); }catch(e){} } // 隨時存檔:整局狀態存localStorage(手機重整不丟)
 function loadRun(){ try{ const o=JSON.parse(localStorage.getItem(RUN_KEY)); return (o&&o.v===2&&o.S)?o.S:null; }catch(e){return null;} }
