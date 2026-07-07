@@ -444,8 +444,9 @@ function draftOffer(S,hero){ const ex=shuffle(S,POOL[hero].slice()); const com=P
 function winBattle(S){
   const node=S.run.map[S.run.node];
   S.run.gold+=15;
-  if(S.run.relics.includes('tome')) S.run.explore=(S.run.explore||0)+2; // 探險誌:勝利+2探索值
-  if(node.mod){ S.run.explore=(S.run.explore||0)+3; // 困難房間:較多探索值 + 紀念卡(獨特強卡)
+  S.run.explore=(S.run.explore||0)+(node.t==='boss'?3:2); // 每場戰鬥勝利基礎探索值(一般戰+2·boss+3)→商店買得起、經濟流動
+  if(S.run.relics.includes('tome')) S.run.explore=(S.run.explore||0)+2; // 探險誌:勝利額外+2探索值
+  if(node.mod){ S.run.explore=(S.run.explore||0)+3; // 困難房間:額外探索值 + 紀念卡(獨特強卡)
     if(!S.heroes.A.deck.includes('memento_a')) S.heroes.A.deck.push('memento_a');
     if(!S.heroes.B.deck.includes('memento_b')) S.heroes.B.deck.push('memento_b'); }
   S.battle=null;
