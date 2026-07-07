@@ -242,8 +242,22 @@ function renderBattle(){
   return h;
 }
 function intentText(e,it){ const wk=e.st&&e.st.weaken?e.st.weaken.v:0; const rg=e.enraged?e.enraged:0;
-  const v=(base)=>Math.max(0,base+ (rg?rg:0) - wk); // 粗估顯示
-  return {smash:'重擊 '+v(it.v)+'→'+(it.tgt||'?'),pinch:'夾擊 '+v(it.v),splash:'噴濺 '+v(it.v)+' 全體',sweep:'橫掃 '+v(it.v)+' 全體',guard:'蓄防',summon:'召喚小兵',heal_self:'自療',shock:'放電',bleed:'流血 全體'}[it.t]||it.t; }
+  const v=(base)=>Math.max(0,(base||0)+ (rg?rg:0) - wk); // 顯示已算弱化/暴怒後的實際傷害
+  // 實際單體目標:引擎打「嘲諷對象→否則血最少的存活英雄」(it.tgt 常被覆蓋、故用真實目標顯示角色名)
+  const alive=['A','B'].filter(h=>S.battle.combat[h] && !S.battle.combat[h].downed);
+  const lowest=alive.length? alive.reduce((m,h)=>S.heroes[h].hp<S.heroes[m].hp?h:m) : null;
+  const single=e.tauntT||lowest||it.tgt||'A'; const nm=h=>S.heroes[h]?S.heroes[h].name:h;
+  const t=it.t;
+  if(t==='smash') return `重擊 ${v(it.v)} → ${nm(single)}`;
+  if(t==='pinch') return `夾擊 ${v(it.v)} → ${nm(single)}`;
+  if(t==='splash') return `噴濺 ${v(it.v)} → 全體(部分穿格擋)`;
+  if(t==='sweep') return `橫掃 ${v(it.v)} → 全體(部分穿格擋)`;
+  if(t==='bleed') return `流血 ${v(it.v||9)} → 全體(無視格擋)`;
+  if(t==='guard') return '蓄防(自身加格擋)';
+  if(t==='summon') return '召喚小兵';
+  if(t==='heal_self') return `自療 +${it.v||0}`;
+  if(t==='shock') return '放電(傷害依本輪出牌數·半穿格擋)';
+  return t; }
 function hero(k,who){ const p=S.battle.combat[k], H=S.heroes[k]; const st=p.st||{};
   const stx=[st.empower?'★鼓舞'+st.empower.v:'',st.focus?'✦蓄力':'',st.sustain?'⚔戰意'+st.sustain.v:'',st.battlefield?'⚔戰域'+st.battlefield.v:'',st.teamAtk?'⚔全隊'+st.teamAtk.v:'',st.extraDraw?'✎多抽'+st.extraDraw.v:''].filter(Boolean).join(' ');
   const fam=S.run.fam&&S.run.fam[k];

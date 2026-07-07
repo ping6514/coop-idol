@@ -117,11 +117,11 @@ const BOND_SKILLS = { burst:{n:'共鳴爆發',cost:6}, wall:{n:'絕對防線',co
 const ENEMIES = {
   // 難度調校(7/5):敵人打更痛+更肉、逼凪取捨、製造瀕死。splash/bleed 不可完全格擋防禦(chip壓力)
   slime:{n:'史萊姆娘',hp:66,weak:['fire'],ins:[{t:'smash',v:17,tgt:'A'},{t:'splash',v:8},{t:'smash',v:17,tgt:'B'}]}, // 怕火
-  crab:{n:'硬殼蟹娘',hp:80,armor:7,resist:['phys'],weak:['thunder'],ins:[{t:'pinch',v:16,tgt:'A'},{t:'pinch',v:16,tgt:'A'},{t:'sweep',v:9}]}, // 護甲+抗物理·怕雷(用電矢/開窗破)
+  crab:{n:'硬殼蟹娘',hp:80,armor:7,resist:['phys'],weak:['thunder'],ins:[{t:'pinch',v:10,tgt:'A'},{t:'pinch',v:10,tgt:'A'},{t:'sweep',v:9}]}, // 護甲+抗物理·怕雷(用電矢/開窗破);夾擊10(修好pinch後調降)
   jelly:{n:'水母',hp:34,grp:'swarm',weak:['thunder'],ins:[{t:'smash',v:11,tgt:'A'},{t:'sweep',v:6}]}, // 分裂群·怕雷(電矢AoE剋)
   priest:{n:'珊瑚祭司',hp:84,weak:['fire'],ins:[{t:'smash',v:15,tgt:'A'},{t:'heal_self',v:14}]}, // 怕火(燃燒也剋治療)
   eel:{n:'電鰻姬',hp:74,resist:['thunder'],weak:['ice'],ins:[{t:'shock'},{t:'smash',v:14,tgt:'B'}]}, // 電鰻抗雷·怕冰
-  crabgen:{n:'深淵蟹將',hp:96,armor:9,resist:['phys'],weak:['thunder'],ins:[{t:'pinch',v:17,tgt:'A'},{t:'sweep',v:11},{t:'pinch',v:17,tgt:'B'}]}, // 抗物理·怕雷
+  crabgen:{n:'深淵蟹將',hp:96,armor:9,resist:['phys'],weak:['thunder'],ins:[{t:'pinch',v:11,tgt:'A'},{t:'sweep',v:11},{t:'pinch',v:11,tgt:'B'}]}, // 抗物理·怕雷;夾擊11(修好pinch後調降)
   murk:{n:'深海魚人',hp:110,weak:['ice'],ins:[{t:'smash',v:24,tgt:'A'},{t:'guard'},{t:'smash',v:24,tgt:'B'},{t:'splash',v:11}]}, // 怕冰
   boss:{n:'深海女王莎菈',hp:168,boss:true,resist:['fire'],weak:['ice'],ins:[{t:'summon',minion:'shade'},{t:'smash',v:26,tgt:'A'},{t:'bleed',v:7},{t:'smash',v:26,tgt:'B'}]}, // 抗火·怕冰·召喚深海殘影
   // 敵方召喚小兵 + 強怪(meta兜底·後段用)
@@ -414,6 +414,7 @@ function engineStep(S){
     else if(it.t==='summon'){ if(it.minion && aliveEnemies(S).length<4 && (e.summonsMade||0)<2){ B.enemies.push(mkEnemy(it.minion,S.run.coef)); e.summonsMade=(e.summonsMade||0)+1; B.feed.unshift(`${e.name}召喚了${ENEMIES[it.minion].n}!`); } else e.enraged=(e.enraged||0)+1; } // 敵方召喚:生小兵(場上上限4·每召喚者上限2)、否則暴怒
     else if(it.t==='bleed'){ const v=applyOut(e,it.v||9); hitHero(S,'A',v,PIERCE.bleed);hitHero(S,'B',v,PIERCE.bleed); }
     else if(it.t==='smash'){ let tgt=e.tauntT||lowestHero(S)||it.tgt||'A'; if(B.combat[tgt]&&B.combat[tgt].downed)tgt=(tgt==='A'?'B':'A'); hitHero(S,tgt,applyOut(e,it.v+(e.enraged?5:0))); }
+    else if(it.t==='pinch'){ let tgt=e.tauntT||it.tgt||lowestHero(S)||'A'; if(B.combat[tgt]&&B.combat[tgt].downed)tgt=(tgt==='A'?'B':'A'); hitHero(S,tgt,applyOut(e,it.v+(e.enraged?5:0))); } // 修:夾擊原本沒處理→蟹類不造成傷害(潛在bug);夾擊=單體·打宣告目標(蟹會鎖一個英雄夾)
     else if(it.t==='splash'){ const v=applyOut(e,it.v); hitHero(S,'A',v,PIERCE.splash);hitHero(S,'B',v,PIERCE.splash); }
     else if(it.t==='sweep'){ const v=applyOut(e,it.v); hitHero(S,'A',v,PIERCE.sweep);hitHero(S,'B',v,PIERCE.sweep); }
     e.tauntT=null; e.ii++;
