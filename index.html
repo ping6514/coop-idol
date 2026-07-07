@@ -55,6 +55,7 @@
   .choices{display:flex;gap:10px;flex-wrap:wrap}
   .choice{flex:1;min-width:170px;background:var(--bg2);border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}
   .choice:hover{border-color:var(--a)}
+  .choice.dis{opacity:.5;cursor:not-allowed;background:#efe7d6}.choice.dis:hover{border-color:var(--line)}
   .choice .cn{font-weight:800;color:var(--a)} .choice .cd{font-size:12.5px;color:var(--sub);margin-top:4px}
   .map{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0}
   .node{padding:6px 9px;border-radius:9px;border:1px solid var(--line);background:var(--panel);font-size:12px;text-align:center}
@@ -192,11 +193,13 @@ function renderDraft(){ const o=S.offer; const mv=E.legalMoves(S,o.hero); const 
   if(canRm) h+=` <button class="btn sec" onclick="act({type:'draft_pick',pick:'remove'})">改成移除一張基礎牌</button>`;
   return h+`</div>`; }
 function renderShop(){ const c=E.shopCost(S), cc=E.shopCardCost(S), ex=S.run.explore||0;
-  let h=`<div class="overlay"><h2>🛒 商人 <span class="sub">你的探索值 ${ex}</span></h2><div class="choices">`;
-  const mv=E.legalMoves(S,'A');
-  const lbl={remove:'移除一張基礎牌',upgrade:'升級一張牌',card:'買一張稀有卡',leave:'離開'};
-  const costOf={remove:c,upgrade:c,card:cc,leave:0};
-  mv.filter(m=>m.type==='shop').forEach(m=>{ const co=costOf[m.act]||0; h+=`<div class="choice" onclick="act({type:'shop',act:'${m.act}'})"><div class="cn">${lbl[m.act]||m.act}</div><div class="cd">${m.act==='leave'?'不花費':'花費 <b style=color:var(--gold)>'+co+'</b> 探索值'}</div></div>`; });
+  let h=`<div class="overlay"><h2>🛒 商人 <span class="sub">你的探索值 <b style=color:var(--gold)>${ex}</b></span></h2>`;
+  h+=`<div class="hint" style="text-align:left;margin:0 0 8px">花探索值換戰力。探索值來源:困難房間、岔路的困難路、探險誌遺物。</div><div class="choices">`;
+  const avail=new Set(E.legalMoves(S,'A').filter(m=>m.type==='shop').map(m=>m.act));
+  const items=[{act:'remove',n:'移除一張基礎牌',cost:c,noCard:'沒有多餘的基礎牌可移除'},{act:'upgrade',n:'升級一張牌',cost:c,noCard:'目前沒有可升級的牌'},{act:'card',n:'買一張稀有卡',cost:cc,noCard:'—'}];
+  items.forEach(it=>{ const ok=avail.has(it.act); const reason= ok?'':(ex<it.cost?`探索值不足(需 ${it.cost}·你有 ${ex})`:it.noCard);
+    h+=`<div class="choice${ok?'':' dis'}" ${ok?`onclick="act({type:'shop',act:'${it.act}'})"`:''}><div class="cn">${it.n}</div><div class="cd">${ok?('花費 <b style=color:var(--gold)>'+it.cost+'</b> 探索值'):('<span style="color:var(--warn)">'+reason+'</span>')}</div></div>`; });
+  h+=`<div class="choice" onclick="act({type:'shop',act:'leave'})"><div class="cn">離開</div><div class="cd">不花費</div></div>`;
   return h+'</div></div>'; }
 function renderRelic(){ let h=`<div class="overlay"><h2>💠 遺物 二選一 <span class="sub">(永久·跨戰鬥)</span></h2><div class="choices">`;
   S.offer.picks.forEach(r=>{ const d=E.RELIC_DEFS[r]||{n:r,d:''}; h+=`<div class="choice" onclick="act({type:'relic_pick',pick:'${r}'})"><div class="cn">💠 ${d.n}</div><div class="cd">${d.d}</div></div>`; });
